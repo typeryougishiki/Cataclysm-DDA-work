@@ -1,11 +1,5 @@
 [
   {
-    "type": "EXTERNAL_OPTION",
-    "name": "ZOMBIFY_INTO_ENABLED",
-    "stype": "bool",
-    "value": false
-  },
-  {
     "id": "anesthetic",
     "type": "requirement",
     "//": "Anesthetic cost removed in this mod, as autodocs do all the heavy lifting.",
