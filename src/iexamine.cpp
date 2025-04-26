@@ -3039,7 +3039,7 @@ void iexamine::harvest_plant( Character &you, const tripoint_bub_ms &examp, bool
             int seedCount = std::max( 1, rng( plant_count / 4, plant_count / 2 ) );
             for( item &i : get_harvest_items( type, plant_count, seedCount, true ) ) {
                 if( from_activity ) {
-                    i.set_var( "activity_var", you.name );
+                    i.set_var( "activity_var", you.getID().get_value() );
                 }
                 here.add_item_or_charges( you.pos_bub(), i );
             }

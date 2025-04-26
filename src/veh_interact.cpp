@@ -3361,7 +3361,7 @@ void veh_interact::complete_vehicle( map &here, Character &you )
             // items afterwards
             if( you.is_npc() ) {
                 for( item &it : resulting_items ) {
-                    it.set_var( "activity_var", you.name );
+                    it.set_var( "activity_var", you.getID().get_value() );
                 }
             }
             // Finally, put all the results somewhere (we wanted to wait until this

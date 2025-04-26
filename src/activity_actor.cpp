@@ -5750,7 +5750,7 @@ void disassemble_activity_actor::start( player_activity &act, Character &who )
     }
 
     // Mark the item, not available for other characters
-    target->set_var( "activity_var", who.name );
+    target->set_var( "activity_var", who.getID().get_value() );
 
     activity_override = target->get_making().exertion_level();
 
@@ -6912,17 +6912,17 @@ void chop_logs_activity_actor::finish( player_activity &act, Character &who )
     }
     for( int i = 0; i != log_quan; ++i ) {
         item obj( itype_log, calendar::turn );
-        obj.set_var( "activity_var", who.name );
+        obj.set_var( "activity_var", who.getID().get_value() );
         here.add_item_or_charges( pos, obj );
     }
     for( int i = 0; i != stick_quan; ++i ) {
         item obj( itype_stick_long, calendar::turn );
-        obj.set_var( "activity_var", who.name );
+        obj.set_var( "activity_var", who.getID().get_value() );
         here.add_item_or_charges( pos, obj );
     }
     for( int i = 0; i != splint_quan; ++i ) {
         item obj( itype_splinter, calendar::turn );
-        obj.set_var( "activity_var", who.name );
+        obj.set_var( "activity_var", who.getID().get_value() );
         here.add_item_or_charges( pos, obj );
     }
     here.ter_set( pos, ter_t_dirt );

@@ -635,7 +635,7 @@ static void move_item( Character &you, item &it, const int quantity, const tripo
         if( activity_to_restore == ACT_TIDY_UP ) {
             it.erase_var( "activity_var" );
         } else if( activity_to_restore == ACT_FETCH_REQUIRED ) {
-            it.set_var( "activity_var", you.name );
+            it.set_var( "activity_var", you.getID().get_value() );
         }
         put_into_vehicle_or_drop( you, item_drop_reason::deliberate, { it }, &here, dest );
         // Remove from map or vehicle.
@@ -1389,7 +1389,7 @@ static activity_reason_info can_do_activity_there( const activity_id &act, Chara
         requirement_data req;
         for( item &i : here.i_at( src_loc ) ) {
             // Skip items marked by other ppl.
-            if( i.has_var( "activity_var" ) && i.get_var( "activity_var" ) != you.name ) {
+            if( i.has_var( "activity_var" ) && i.get_var( "activity_var" ) != std::to_string(you.getID().get_value()) ) {
                 continue;
             }
             //unmark the item before check
@@ -1417,7 +1417,7 @@ static activity_reason_info can_do_activity_there( const activity_id &act, Chara
                     continue;
                 }
                 // check passed, mark the item
-                i.set_var( "activity_var", you.name );
+                i.set_var( "activity_var", you.getID().get_value() );
                 return activity_reason_info::ok( do_activity_reason::NEEDS_DISASSEMBLE );
             }
         }
@@ -1753,7 +1753,7 @@ void _tidy_move_items( Character &you, item_stack &stack, tripoint_bub_ms const 
                        activity_id const &activity_to_restore )
 {
     for( item &it : stack ) {
-        if( it.has_var( "activity_var" ) && it.get_var( "activity_var", "" ) == you.name ) {
+        if( it.has_var( "activity_var" ) && it.get_var( "activity_var", "" ) == std::to_string(you.getID().get_value()) ) {
             move_item( you, it, it.count(), src_loc, dst_loc, vpr_src, activity_to_restore );
             break;
         }
@@ -1911,7 +1911,7 @@ static bool fetch_activity(
                     } else {
                         leftovers.charges = 0;
                     }
-                    it.set_var( "activity_var", you.name );
+                    it.set_var( "activity_var", you.getID().get_value() );
                     you.i_add( it );
                     if( you.is_npc() ) {
                         if( pickup_count == 1 ) {
@@ -1951,7 +1951,7 @@ static bool butcher_corpse_activity( Character &you, const tripoint_bub_ms &src_
             if( corpse.size > creature_size::medium && reason != do_activity_reason::NEEDS_BIG_BUTCHERING ) {
                 continue;
             }
-            elem.set_var( "activity_var", you.name );
+            elem.set_var( "activity_var", you.getID().get_value() );
             you.assign_activity( ACT_BUTCHER_FULL, 0, true );
             you.activity.targets.emplace_back( map_cursor( src_loc ), &elem );
             you.activity.placement = here.get_abs( src_loc );
@@ -2692,7 +2692,7 @@ static std::unordered_set<tripoint_abs_ms> generic_multi_activity_locations(
                 break;
             }
             for( const item &stack_elem : here.i_at( elem ) ) {
-                if( stack_elem.has_var( "activity_var" ) && stack_elem.get_var( "activity_var", "" ) == you.name ) {
+                if( stack_elem.has_var( "activity_var" ) && stack_elem.get_var( "activity_var", "" ) == std::to_string(you.getID().get_value()) ) {
                     const furn_t &f = here.furn( elem ).obj();
                     if( !f.has_flag( ter_furn_flag::TFLAG_PLANT ) ) {
                         src_set.insert( here.get_abs( elem ) );
@@ -3263,7 +3263,7 @@ static bool generic_multi_activity_do(
         for( item &elem : items ) {
             if( elem.is_disassemblable() ) {
                 // Disassemble the checked one.
-                if( elem.get_var( "activity_var" ) == you.name ) {
+                if( elem.get_var( "activity_var" ) == std::to_string(you.getID().get_value()) ) {
                     const recipe &r = ( elem.typeId() == itype_disassembly ) ? elem.get_making() :
                                       recipe_dictionary::get_uncraft( elem.typeId() );
                     int const qty = std::max( 1, elem.typeId() == itype_disassembly ? elem.get_making_batch_size() :

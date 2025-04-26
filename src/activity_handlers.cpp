@@ -969,7 +969,7 @@ static std::vector<item> create_charge_items( const itype *drop, int count,
             obj.faults.emplace( flt );
         }
         if( !you.backlog.empty() && you.backlog.front().id() == ACT_MULTIPLE_BUTCHER ) {
-            obj.set_var( "activity_var", you.name );
+            obj.set_var( "activity_var", you.getID().get_value() );
         }
         objs.push_back( obj );
     }
@@ -1250,7 +1250,7 @@ static bool butchery_drops_harvest( item *corpse_item, const mtype &mt, Characte
                     obj.faults.emplace( flt );
                 }
                 if( !you.backlog.empty() && you.backlog.front().id() == ACT_MULTIPLE_BUTCHER ) {
-                    obj.set_var( "activity_var", you.name );
+                    obj.set_var( "activity_var", you.getID().get_value() );
                 }
                 for( int i = 0; i != roll; ++i ) {
                     here.add_item_or_charges( you.pos_bub(), obj );
@@ -1291,7 +1291,7 @@ static bool butchery_drops_harvest( item *corpse_item, const mtype &mt, Characte
             ruined_parts.set_item_temperature( corpse_item->temperature );
             ruined_parts.set_rot( corpse_item->get_rot() );
             if( !you.backlog.empty() && you.backlog.front().id() == ACT_MULTIPLE_BUTCHER ) {
-                ruined_parts.set_var( "activity_var", you.name );
+                ruined_parts.set_var( "activity_var", you.getID().get_value() );
             }
             for( int i = 0; i < item_charges; ++i ) {
                 here.add_item_or_charges( you.pos_bub(), ruined_parts );
@@ -1886,7 +1886,7 @@ void activity_handlers::pickaxe_finish( player_activity *act, Character *you )
     }
     if( resume_for_multi_activities( *you ) ) {
         for( item &elem : here.i_at( pos ) ) {
-            elem.set_var( "activity_var", you->name );
+            elem.set_var( "activity_var", you->getID().get_value() );
         }
     }
 }
@@ -2957,7 +2957,7 @@ static void rod_fish( Character *you, const std::vector<monster *> &fishables )
     }
     for( item &elem : here.i_at( you->pos_bub() ) ) {
         if( elem.is_corpse() && !elem.has_var( "activity_var" ) ) {
-            elem.set_var( "activity_var", you->name );
+            elem.set_var( "activity_var", you->getID().get_value() );
         }
     }
 }
@@ -3519,7 +3519,7 @@ void activity_handlers::jackhammer_finish( player_activity *act, Character *you 
     }
     if( resume_for_multi_activities( *you ) ) {
         for( item &elem : here.i_at( pos ) ) {
-            elem.set_var( "activity_var", you->name );
+            elem.set_var( "activity_var", you->getID().get_value() );
         }
     }
 }
