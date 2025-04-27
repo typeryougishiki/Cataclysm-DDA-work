@@ -6142,7 +6142,7 @@ void item::final_info( std::vector<iteminfo> &info, const iteminfo_query *parts,
 
         const auto print_parts = [&info, &player_character](
                                      const std::vector<vpart_info> &vparts,
-                                     const std::string_view install_where,
+                                     std::string_view install_where,
                                      const std::function<bool( const vpart_info & )> &predicate
         ) {
             std::vector<std::string> result_parts;
@@ -11358,6 +11358,22 @@ bool item::uses_energy() const
     return has_flag( flag_USES_BIONIC_POWER ) ||
            has_flag( flag_USE_UPS ) ||
            ( is_magazine() && ammo_capacity( ammo_battery ) > 0 );
+}
+
+bool item::is_chargeable() const
+{
+    if( !uses_energy() ) {
+        return false;
+    }
+    // bionic power using items have ammo_capacity = player bionic power storage.  Since the items themselves aren't chargeable, auto fail unless they also have a magazine.
+    if( has_flag( flag_USES_BIONIC_POWER ) && !magazine_current() ) {
+        return false;
+    }
+    if( ammo_remaining() < ammo_capacity( ammo_battery ) ) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 units::energy item::energy_remaining( const Character *carrier ) const

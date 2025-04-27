@@ -394,7 +394,11 @@ std::vector<item_location> drop_on_map( Character &you, item_drop_reason reason,
                 break;
         }
 
-        if( get_option<bool>( "AUTO_NOTES_DROPPED_FAVORITES" ) && it.is_favorite ) {
+        if( get_option<bool>( "AUTO_NOTES_DROPPED_FAVORITES" )
+            && ( it.is_favorite
+        || it.has_any_with( []( const item & it ) {
+        return it.is_favorite;
+    }, pocket_type::CONTAINER ) ) ) {
             const tripoint_abs_omt your_pos = you.pos_abs_omt();
             if( !overmap_buffer.has_note( your_pos ) ) {
                 overmap_buffer.add_note( your_pos, it.display_name() );
@@ -1628,7 +1632,7 @@ static std::vector<std::tuple<tripoint_bub_ms, itype_id, int>> requirements_map(
                     }
                     break;
                 }
-                it++;
+                ++it;
             }
             if( line_found ) {
                 while( true ) {
@@ -1652,7 +1656,7 @@ static std::vector<std::tuple<tripoint_bub_ms, itype_id, int>> requirements_map(
                             remainder -= quantity_here2;
                         }
                     }
-                    it--;
+                    --it;
                 }
             }
         }
@@ -1686,7 +1690,7 @@ static std::vector<std::tuple<tripoint_bub_ms, itype_id, int>> requirements_map(
                     }
                     break;
                 }
-                it++;
+                ++it;
             }
             if( line_found ) {
                 while( true ) {
@@ -1710,7 +1714,7 @@ static std::vector<std::tuple<tripoint_bub_ms, itype_id, int>> requirements_map(
                             remainder -= quantity_here2;
                         }
                     }
-                    it--;
+                    --it;
                 }
             }
         }
@@ -1733,7 +1737,7 @@ static std::vector<std::tuple<tripoint_bub_ms, itype_id, int>> requirements_map(
                     line_found = true;
                     break;
                 }
-                it++;
+                ++it;
             }
         }
     }
