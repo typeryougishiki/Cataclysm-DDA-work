@@ -6915,7 +6915,6 @@ void chop_logs_activity_actor::finish( player_activity &act, Character &who )
         obj.set_var( "activity_var", who.getID().get_value() );
         //The item may exceed the capacity of the pos and move to another coordinate.So get loc.
         item_location loc = here.add_item_or_charges_ret_loc( pos, obj );
-        // debugmsg(std::to_string(static_cast<int>(loc.where())) + loc.pos_abs().to_string());
         if (loc.where() == item_location::type::map){
             who.may_activity_occupancy_items_loc_points.insert(loc.pos_abs());
         }
@@ -6926,7 +6925,6 @@ void chop_logs_activity_actor::finish( player_activity &act, Character &who )
         obj.set_var( "activity_var", who.getID().get_value() );
         //The item may exceed the capacity of the pos and move to another coordinate.So get loc.
         item_location loc = here.add_item_or_charges_ret_loc( pos, obj );
-        // debugmsg(std::to_string(static_cast<int>(loc.where())) + loc.pos_abs().to_string());
         if (loc.where() == item_location::type::map){
             who.may_activity_occupancy_items_loc_points.insert(loc.pos_abs());
         }
@@ -6936,7 +6934,6 @@ void chop_logs_activity_actor::finish( player_activity &act, Character &who )
         obj.set_var( "activity_var", who.getID().get_value() );
         //The item may exceed the capacity of the pos and move to another coordinate.So get loc.
         item_location loc = here.add_item_or_charges_ret_loc( pos, obj );
-        // debugmsg(std::to_string(static_cast<int>(loc.where())) + loc.pos_abs().to_string());
         if (loc.where() == item_location::type::map){
             who.may_activity_occupancy_items_loc_points.insert(loc.pos_abs());
         }
