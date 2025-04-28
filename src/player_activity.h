@@ -57,6 +57,9 @@ class player_activity
          *   An activity specific value.
          *   DO NOT USE FOR ITEM INDEX
         */
+        inline std::string test_type_str() __attribute__((noinline)){
+            return type.str();
+        }
         int position = 0;
         std::string name;
         std::vector<item_location> targets;
