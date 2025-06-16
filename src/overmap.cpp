@@ -6,12 +6,14 @@
 #include <cmath>
 #include <cstring>
 #include <exception>
+#include <filesystem>
 #include <list>
 #include <memory>
 #include <numeric>
 #include <optional>
-#include <ostream>
 #include <set>
+#include <sstream>
+#include <stdexcept>
 #include <unordered_set>
 #include <vector>
 
@@ -33,6 +35,7 @@
 #include "distribution.h"
 #include "effect_on_condition.h"
 #include "enum_conversions.h"
+#include "filesystem.h"
 #include "flood_fill.h"
 #include "game.h"
 #include "generic_factory.h"
@@ -69,6 +72,8 @@
 #include "text_snippets.h"
 #include "translations.h"
 #include "weighted_list.h"
+#include "worldfactory.h"
+#include "zzip.h"
 
 static const mongroup_id GROUP_NEMESIS( "GROUP_NEMESIS" );
 static const mongroup_id GROUP_OCEAN_DEEP( "GROUP_OCEAN_DEEP" );
@@ -3706,7 +3711,6 @@ void overmap::generate( const std::vector<const overmap *> &neighbor_overmaps,
     if( get_option<bool>( "OVERMAP_PLACE_SPECIALS" ) ) {
         place_specials( enabled_specials );
     }
-    overmap_buffer.clear_overmap_uniques();
     if( get_option<bool>( "OVERMAP_PLACE_FOREST_TRAILHEADS" ) ) {
         place_forest_trailheads();
     }
@@ -7086,6 +7090,22 @@ om_direction::type overmap::random_special_rotation( const overmap_special &spec
     return rotation != last ? *rotation : om_direction::type::invalid;
 }
 
+void overmap::log_unique_special( const overmap_special_id &id )
+{
+    if( contains_unique_special( id ) ) {
+        debugmsg( "Overmap unique overmap special placed more than once: %s", id.str() );
+    }
+    overmap_buffer.log_unique_special( id );
+}
+
+bool overmap::contains_unique_special( const overmap_special_id &id ) const
+{
+    return std::find_if( overmap_special_placements.begin(),
+    overmap_special_placements.end(), [&id]( auto it ) {
+        return it.second == id;
+    } ) != overmap_special_placements.end();
+}
+
 bool overmap::can_place_special( const overmap_special &special, const tripoint_om_omt &p,
                                  om_direction::type dir, const bool must_be_unexplored ) const
 {
@@ -7094,8 +7114,9 @@ bool overmap::can_place_special( const overmap_special &special, const tripoint_
     if( !special.id ) {
         return false;
     }
-    if( ( special.has_flag( "GLOBALLY_UNIQUE" ) || special.has_flag( "OVERMAP_UNIQUE" ) ) &&
-        overmap_buffer.contains_unique_special( special.id ) ) {
+    if( ( special.has_flag( "GLOBALLY_UNIQUE" ) &&
+          overmap_buffer.contains_unique_special( special.id ) ) ||
+        ( special.has_flag( "OVERMAP_UNIQUE" ) && contains_unique_special( special.id ) ) ) {
         return false;
     }
 
@@ -7169,7 +7190,7 @@ std::vector<tripoint_om_omt> overmap::place_special(
         //       point_abs_omt location = coords::project_to<coords::omt>(this->pos()) + p.xy().raw();
         //        DebugLog(DL_ALL, DC_ALL) << "Globally Unique " << special.id.c_str() << " added at " << location.to_string_writable();
     } else if( special.has_flag( "OVERMAP_UNIQUE" ) ) {
-        overmap_buffer.add_overmap_unique_special( special.id );
+        log_unique_special( special.id );
     }
     // CITY_UNIQUE is handled in place_building()
 
@@ -7739,23 +7760,47 @@ void overmap::place_radios()
 
 void overmap::open( overmap_special_batch &enabled_specials )
 {
-    const cata_path terfilename = overmapbuffer::terrain_filename( loc );
+    if( world_generator->active_world->has_compression_enabled() ) {
+        const std::string terfilename = overmapbuffer::terrain_filename( loc );
+        const std::filesystem::path terfilename_path = std::filesystem::u8path( terfilename );
+        const cata_path zzip_path = PATH_INFO::world_base_save_path() / "overmaps" / terfilename_path +
+                                    ".zzip";
+        std::shared_ptr<zzip> z = zzip::load( zzip_path.get_unrelative_path(),
+                                              ( PATH_INFO::world_base_save_path() / "overmaps.dict" ).get_unrelative_path()
+                                            );
 
-    if( read_from_file_optional( terfilename, [this, &terfilename]( std::istream & is ) {
-    unserialize( terfilename, is );
-    } ) ) {
-        const cata_path plrfilename = overmapbuffer::player_filename( loc );
-        read_from_file_optional( plrfilename, [this, &plrfilename]( std::istream & is ) {
-            unserialize_view( plrfilename, is );
-        } );
-    } else { // No map exists!  Prepare neighbors, and generate one.
-        std::vector<const overmap *> neighbors;
-        neighbors.reserve( four_adjacent_offsets.size() );
-        for( const point &adjacent : four_adjacent_offsets ) {
-            neighbors.emplace_back( overmap_buffer.get_existing( loc + adjacent ) );
+        if( read_from_zzip_optional( z, terfilename_path, [this]( std::string_view sv ) {
+        std::istringstream is{ std::string( sv ) };
+        unserialize( is );
+        } ) ) {
+            const cata_path plrfilename = overmapbuffer::player_filename( loc );
+            read_from_file_optional( plrfilename, [this, &plrfilename]( std::istream & is ) {
+                unserialize_view( plrfilename, is );
+            } );
+            return;
         }
-        generate( neighbors, enabled_specials );
+    } else {
+        const cata_path terfilename = PATH_INFO::world_base_save_path() / overmapbuffer::terrain_filename(
+                                          loc );
+
+        if( read_from_file_optional( terfilename, [this, &terfilename]( std::istream & is ) {
+        unserialize( terfilename, is );
+        } ) ) {
+            const cata_path plrfilename = overmapbuffer::player_filename( loc );
+            read_from_file_optional( plrfilename, [this, &plrfilename]( std::istream & is ) {
+                unserialize_view( plrfilename, is );
+            } );
+            return;
+        }
     }
+
+    // pointers looks like (north, south, west, east)
+    std::vector<const overmap *> neighbors;
+    neighbors.reserve( four_adjacent_offsets.size() );
+    for( const point &adjacent : four_adjacent_offsets ) {
+        neighbors.emplace_back( overmap_buffer.get_existing( loc + adjacent ) );
+    }
+    generate( neighbors, enabled_specials );
 }
 
 // Note: this may throw io errors from std::ofstream
@@ -7765,9 +7810,37 @@ void overmap::save() const
         serialize_view( stream );
     } );
 
-    write_to_file( overmapbuffer::terrain_filename( loc ), [&]( std::ostream & stream ) {
-        serialize( stream );
-    } );
+    if( world_generator->active_world->has_compression_enabled() ) {
+        const std::string terfilename = overmapbuffer::terrain_filename( loc );
+        const std::filesystem::path terfilename_path = std::filesystem::u8path( terfilename );
+        const cata_path overmaps_folder = PATH_INFO::world_base_save_path() / "overmaps";
+        assure_dir_exist( overmaps_folder );
+        const cata_path zzip_path = overmaps_folder / terfilename_path + ".zzip";
+        std::shared_ptr<zzip> z = zzip::load( zzip_path.get_unrelative_path(),
+                                              ( PATH_INFO::world_base_save_path() / "overmaps.dict" ).get_unrelative_path()
+                                            );
+        if( !z ) {
+            throw std::runtime_error(
+                string_format(
+                    "Failed to open %s",
+                    zzip_path.get_unrelative_path().generic_u8string().c_str()
+                )
+            );
+        }
+
+        std::stringstream s;
+        serialize( s );
+
+        if( !z->add_file( terfilename_path, s.str() ) ) {
+            throw std::runtime_error( string_format( "Failed to save omap %d.%d to %s", loc.x(),
+                                      loc.y(), zzip_path.get_unrelative_path().generic_u8string().c_str() ) );
+        }
+    } else {
+        write_to_file( PATH_INFO::world_base_save_path() / overmapbuffer::terrain_filename( loc ), [&](
+        std::ostream & stream ) {
+            serialize( stream );
+        } );
+    }
 }
 
 void overmap::spawn_mon_group( const mongroup &group, int radius )
